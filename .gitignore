@@ -8,7 +8,9 @@
 *.ctxt
 
 # output files
-output/
+**/output/runs/*
+!**/output/runs/latest.json
+!**/output/runs/latest.csv
 
 # Package Files #
 *.jar
