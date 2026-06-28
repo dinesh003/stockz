@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="StockZ Intraday Stock Screener Dashboard. Scan market movers, calculate technical indicators, time patterns, targets, and find high reward-risk trade setups.">
+    <title>StockZ - Intraday Stock Screener</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <!-- Custom Style Sheet -->
+    <link rel="stylesheet" th:href="@{/css/index.css(v='2.3')}">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar Panel: Configurations -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="logo-icon">Z</div>
+                <h1>StockZ</h1>
+            </div>
+
+            <form id="config-form" class="config-form" onsubmit="return false;">
+
+                <!-- Scan Mode Segmented Switch -->
+                <div class="scan-mode-segmented">
+                    <button type="button" id="btn-mode-nifty" class="scan-mode-btn active"
+                        onclick="setScanMode('universe')">Nifty</button>
+                    <button type="button" id="btn-mode-custom" class="scan-mode-btn"
+                        onclick="setScanMode('custom')">Custom</button>
+                </div>
+
+                <!-- Custom Symbols input (visible only in Custom mode) -->
+                <div id="custom-symbol-panel" class="field-section hidden">
+                    <div class="section-label">Custom Setup</div>
+                    <input type="text" id="input-symbols" name="symbols" placeholder="e.g. HSCL, RELIANCE"
+                        class="inline-input grow" style="width: 100%; margin-bottom: 12px;">
+                    <div class="inline-row">
+                        <label class="inline-label wide" for="input-custom-threshold">Curr%</label>
+                        <input type="number" id="input-custom-threshold" class="inline-input grow" min="0.01" step="0.1"
+                            value="1.5">
+                    </div>
+                </div>
+
+                <!-- Price Range (Nifty mode only) -->
+                <div id="universe-filter-panel" class="field-section">
+                    <div class="section-label">Price</div>
+                    <div class="inline-grid">
+                        <label class="inline-label" for="input-min-price">Min</label>
+                        <input type="number" id="input-min-price" class="inline-input" min="0" value="500">
+                        <label class="inline-label" for="input-max-price">Max</label>
+                        <input type="number" id="input-max-price" class="inline-input" min="0" value="2750">
+                    </div>
+
+                    <div class="inline-row" style="margin-top:14px;">
+                        <label class="inline-label wide" for="input-move-variance">Var%</label>
+                        <input type="number" id="input-move-variance" class="inline-input grow" min="0" step="0.1"
+                            value="3.0">
+                    </div>
+                </div>
+
+                <!-- Shared Fields -->
+                <div class="field-section">
+                    <div class="inline-row">
+                        <label class="inline-label wide" for="input-lookback">Lookup Days</label>
+                        <input type="number" id="input-lookback" class="inline-input grow" min="20" value="60">
+                    </div>
+
+                    <div id="min-rr-group" class="inline-row rr-row" style="margin-top:12px;">
+                        <label class="inline-label wide" for="input-min-rr">Risk Reward</label>
+                        <input type="number" id="input-min-rr" class="inline-input grow" min="0.1" step="0.1"
+                            value="0.1">
+                    </div>
+
+                    <div class="inline-row" style="margin-top:12px;">
+                        <label class="inline-label wide" for="input-interval">Intraday Interval</label>
+                        <select id="input-interval" class="inline-select grow">
+                            <option value="5m" selected>5m</option>
+                            <option value="15m">15m</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button type="button" id="btn-run-screener" class="btn btn-primary" style="margin-top: 10px;">
+                    <span id="btn-text">Run Screener</span>
+                    <span id="btn-loader" class="loader hidden"></span>
+                </button>
+            </form>
+
+            <div class="snapshot-section"
+                style="display: flex; align-items: center; justify-content: space-between; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+                <div class="section-label" style="margin-bottom: 0;">Download</div>
+                <a id="btn-download-csv" href="/api/v1/screener/latest/csv" class="btn btn-outline-sm disabled"
+                    style="flex-grow: 0; width: auto; padding: 6px 12px;">
+                    <svg class="icon" viewBox="0 0 24 24" style="margin-right: 4px;">
+                        <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
+                    </svg>
+                    CSV
+                </a>
+            </div>
+
+            <div class="system-status">
+                <div class="status-item">
+                    <span class="status-label">Spring Status:</span>
+                    <span id="status-spring" class="status-badge badge-green">UP</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Python Engine:</span>
+                    <span id="status-python" class="status-badge badge-gray">CHECKING...</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Header bar -->
+            <header class="top-bar">
+                <div class="top-bar-left">
+                    <button type="button" id="btn-toggle-sidebar" class="btn-toggle-sidebar" title="Toggle Sidebar">
+                        <svg class="icon" viewBox="0 0 24 24" style="width: 20px; height: 20px;">
+                            <path fill="currentColor" d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
+                        </svg>
+                    </button>
+                    <div class="page-title">
+                        <h2>Intraday Market Screener</h2>
+                        <p id="dashboard-subtitle" class="subtitle">Scans Nifty universe for high-momentum stocks</p>
+                    </div>
+                </div>
+                <div id="latest-run-info" class="latest-run-info hidden">
+                    <span class="run-time-label">Latest Run:</span>
+                    <span id="latest-run-time" class="run-time-value">-</span>
+                    <span id="data-staleness-badge" class="staleness-badge hidden">⚠ Stale</span>
+                </div>
+            </header>
+
+            <!-- Summary Dashboard Cards -->
+            <section class="summary-cards">
+                <div class="card card-scanned">
+                    <h3>Scanned</h3>
+                    <div id="stat-scanned" class="stat-value">0</div>
+                    <!-- <span class="stat-desc">Total symbols scanned</span> -->
+                </div>
+                <div class="card card-filtered">
+                    <h3>Passed Filter</h3>
+                    <div id="stat-filtered" class="stat-value">0</div>
+                    <!-- <span class="stat-desc">Passed price & move rules</span> -->
+                </div>
+                <div class="card card-selected">
+                    <h3>Shortlisted</h3>
+                    <div id="stat-selected" class="stat-value text-green">0</div>
+                    <!-- <span class="stat-desc">Classified as TRADE/WATCHLIST</span> -->
+                </div>
+                <div class="card card-rejected">
+                    <h3>Rejected</h3>
+                    <div id="stat-rejected" class="stat-value text-red">0</div>
+                    <!-- <span class="stat-desc">Fails indicators or risk-reward</span> -->
+                </div>
+            </section>
+
+            <!-- Table Section -->
+            <section class="results-table-section">
+                <div class="table-header">
+                    <h3>Shortlisted Stocks</h3>
+                    <div class="table-controls" style="display: flex; align-items: center;">
+                        <input type="text" id="table-search" placeholder="Search Symbol..." class="inline-input"
+                            style="width: 140px; margin-right: 10px;">
+                        <select id="table-filter-decision" class="inline-select"
+                            style="width: 130px; margin-right: 10px;">
+                            <option value="ALL">All Decisions</option>
+                            <option value="TRADE">TRADE</option>
+                            <option value="WATCHLIST">WATCHLIST</option>
+                            <option value="REJECT">REJECT</option>
+                        </select>
+                        <span id="table-row-count" class="badge-count">0 items</span>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table id="screener-table">
+                        <thead>
+                            <tr>
+                                <th class="sortable" onclick="handleSort('symbol')">Symbol <span
+                                        class="sort-icon"></span></th>
+                                <th class="sortable" onclick="handleSort('currentPrice')">cmp <span
+                                        class="sort-icon"></span></th>
+                                <th class="sortable" onclick="handleSort('currentPercentMove')">Move% <span
+                                        class="sort-icon"></span></th>
+                                <th class="sortable" onclick="handleSort('targetMin')">Price(Low-High) <span
+                                        class="sort-icon"></span></th>
+                                <th class="sortable" onclick="handleSort('typicalHighTime')">High Time <span
+                                        class="sort-icon"></span></th>
+                                <th class="sortable" onclick="handleSort('typicalLowTime')">Low Time <span
+                                        class="sort-icon"></span></th>
+                                <th class="sortable" onclick="handleSort('rsi14')">RSI <span class="sort-icon"></span>
+                                </th>
+                                <th class="sortable" onclick="handleSort('finalDecision')">Decision <span
+                                        class="sort-icon"></span></th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="screener-table-body">
+                            <tr class="empty-state">
+                                <td colspan="9">
+                                    <div class="empty-state-content">
+                                        <svg class="empty-icon" viewBox="0 0 24 24">
+                                            <path
+                                                d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+                                        </svg>
+                                        <p>No screening run performed yet. Set filters and click <strong>Run
+                                                Screener</strong>.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+
+        <!-- Details Drawer Panel (Overlay) -->
+        <div id="details-drawer" class="drawer hidden">
+            <div class="drawer-overlay" id="details-drawer-overlay"></div>
+            <div class="drawer-content">
+                <div class="drawer-header">
+                    <div class="drawer-title-area">
+                        <h2 id="drawer-symbol">-</h2>
+                        <span id="drawer-side" class="badge">LONG</span>
+                    </div>
+                    <button type="button" id="btn-close-drawer" class="btn-close">&times;</button>
+                </div>
+
+                <div class="drawer-body">
+                    <!-- Decision Box -->
+                    <div class="detail-section highlight-box">
+                        <h3>Screener Decision</h3>
+                        <div class="decision-display">
+                            <span id="drawer-decision" class="badge-big">TRADE</span>
+                            <span id="drawer-price-info" class="price-info">Price: ₹1520.50 (up +5.4%)</span>
+                        </div>
+                        <ul id="drawer-notes-list" class="notes-list">
+                            <!-- Populated dynamically -->
+                        </ul>
+                        <div id="drawer-warnings-box" class="warnings-box hidden">
+                            <strong>Warnings:</strong>
+                            <ul id="drawer-warnings-list" class="warnings-list"></ul>
+                        </div>
+                    </div>
+
+                    <!-- Stats Grid -->
+                    <div class="drawer-grid">
+                        <div class="detail-section card">
+                            <h3>Comparable Volatility (60d)</h3>
+                            <div class="stat-row">
+                                <span class="lbl">Sample Sessions:</span>
+                                <span id="drawer-sample-count" class="val">-</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="lbl">Max Hist Gain:</span>
+                                <span id="drawer-max-gain" class="val text-green">-</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="lbl">Max Hist Loss:</span>
+                                <span id="drawer-max-loss" class="val text-red">-</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="lbl">Avg Extension:</span>
+                                <span id="drawer-avg-ext" class="val">-</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="lbl">Avg Close Zone:</span>
+                                <span id="drawer-avg-close" class="val">-</span>
+                            </div>
+                        </div>
+
+                        <div class="detail-section card">
+                            <h3>Intraday Timing & Support</h3>
+                            <div class="stat-row">
+                                <span class="lbl">Typical High Time:</span>
+                                <span id="drawer-high-time" class="val">-</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="lbl">Typical Low Time:</span>
+                                <span id="drawer-low-time" class="val">-</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="lbl">Time Pattern:</span>
+                                <span id="drawer-time-pattern" class="val font-semibold">-</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="lbl">Swing Support:</span>
+                                <span id="drawer-swing-ref" class="val">-</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="lbl">Bollinger Bands:</span>
+                                <span id="drawer-bollinger" class="val">-</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="lbl">ATR (14):</span>
+                                <span id="drawer-atr" class="val">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Trade Setup Plan -->
+                    <div class="detail-section card">
+                        <h3>Trading Execution Targets</h3>
+                        <div class="targets-flex">
+                            <div class="target-box bg-red-opacity">
+                                <span class="target-lbl">Stop Loss (<span id="drawer-sl-type">-</span>)</span>
+                                <span id="drawer-stop-loss" class="target-val text-red">-</span>
+                                <span class="target-desc">Risk: <span id="drawer-risk-amount">-</span></span>
+                            </div>
+                            <div class="target-box bg-blue-opacity">
+                                <span class="target-lbl">Target Range</span>
+                                <span id="drawer-target-range" class="target-val text-blue">-</span>
+                                <span class="target-desc">Reward: <span id="drawer-reward-amount">-</span></span>
+                            </div>
+                            <div class="target-box bg-green-opacity">
+                                <span class="target-lbl">Expected Exit Zone</span>
+                                <span id="drawer-exit-zone" class="target-val text-green">-</span>
+                                <span class="target-desc">R/R Ratio: <span id="drawer-rr-ratio">-</span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script File -->
+    <script th:src="@{/js/index.js(v='2.3')}"></script>
+</body>
+
+</html>

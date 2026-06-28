@@ -7,12 +7,11 @@
 # BlueJ files
 *.ctxt
 
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
+# output files
+output/
 
 # Package Files #
 *.jar
-*.war
 *.nar
 *.ear
 *.zip
@@ -22,3 +21,14 @@
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+
+# Python Cache
+__pycache__/
+*.pyc
+
+# Gradle & Java build directories
+.gradle/
+**/build/*
+!**/build/libs/
+!**/build/libs/*.jar
+bin/
