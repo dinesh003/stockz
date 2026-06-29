@@ -210,6 +210,7 @@ def analyze_setups(setups, config, result):
 
         # Determine trade side based on current percent move
         setup.trade_side = "LONG" if setup.current_percent_move >= 0 else "SHORT"
+        setup.indicator = "Sell" if setup.current_percent_move >= 0 else "Buy"
 
         # Calculate daily indicators
         rsi_val, rsi_lbl = calculate_rsi(close_prices, config["rsi_period"])
@@ -227,7 +228,6 @@ def analyze_setups(setups, config, result):
         setup.swing_stop_reference = fallback_stop
 
         # Lookup daily variation
-        move_variance = config.get("move_variance", 3.0)
         eligible_days = []
 
         if not intraday_df.empty:
@@ -246,17 +246,21 @@ def analyze_setups(setups, config, result):
                 # Daily variation %
                 day_var_pct = ((day_high - day_low) / day_low) * 100 if day_low > 0 else 0.0
 
-                if day_var_pct >= move_variance:
+                # Stats relative to Open
+                high_pct_from_open = ((day_high - day_open) / day_open) * 100 if day_open > 0 else 0.0
+                low_pct_from_open = ((day_open - day_low) / day_open) * 100 if day_open > 0 else 0.0
+                close_pct_from_open = ((day_close - day_open) / day_open) * 100 if day_open > 0 else 0.0
+
+                # Determine the close threshold based on scan mode
+                is_custom_mode = config.get("is_custom_mode", False)
+                close_threshold = config.get("move_threshold", 1.5) if is_custom_mode else config.get("move_variance", 3.0)
+
+                if day_var_pct >= abs(setup.current_percent_move) and abs(close_pct_from_open) <= close_threshold:
                     high_idx = day_df['High'].idxmax()
                     low_idx = day_df['Low'].idxmin()
 
                     high_time_str = high_idx.strftime("%H:%M")
                     low_time_str = low_idx.strftime("%H:%M")
-
-                    # Stats relative to Open
-                    high_pct_from_open = ((day_high - day_open) / day_open) * 100 if day_open > 0 else 0.0
-                    low_pct_from_open = ((day_open - day_low) / day_open) * 100 if day_open > 0 else 0.0
-                    close_pct_from_open = ((day_close - day_open) / day_open) * 100 if day_open > 0 else 0.0
 
                     eligible_days.append({
                         "date": date_val,
@@ -274,10 +278,13 @@ def analyze_setups(setups, config, result):
 
         comp_count = len(eligible_days)
         setup.comparable_sample_count = comp_count
+        setup.indicator_days = comp_count
 
         if comp_count == 0:
+            is_custom_mode = config.get("is_custom_mode", False)
+            close_threshold = config.get("move_threshold", 1.5) if is_custom_mode else config.get("move_variance", 3.0)
             setup.final_decision = "REJECT"
-            setup.decision_notes = [f"No historical days met variation threshold of {move_variance}%"]
+            setup.decision_notes = [f"No historical days met variation threshold of {abs(setup.current_percent_move):.2f}% and close threshold of {close_threshold:.2f}%"]
             setup.warnings.append("No eligible historical variation days")
             result.total_rejected += 1
             result.setups.append(setup)
@@ -426,6 +433,7 @@ def main():
     # Determine scan mode: custom symbols or full universe
     custom_symbols_raw = args.symbols.strip() if args.symbols else ""
     is_custom_mode = bool(custom_symbols_raw)
+    config["is_custom_mode"] = is_custom_mode
     custom_symbols = []
     if is_custom_mode:
         for s in custom_symbols_raw.split(","):

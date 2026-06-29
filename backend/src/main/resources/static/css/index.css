@@ -588,6 +588,18 @@ tbody tr:last-child td {
     border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
+.badge-buy {
+    background-color: rgba(16, 185, 129, 0.15);
+    color: var(--color-success);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.badge-sell {
+    background-color: rgba(244, 63, 94, 0.15);
+    color: var(--color-short);
+    border: 1px solid rgba(244, 63, 94, 0.25);
+}
+
 /* Empty State / Loader inside Table */
 .empty-state {
     text-align: center;

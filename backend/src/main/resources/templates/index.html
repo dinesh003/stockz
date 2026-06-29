@@ -14,7 +14,7 @@
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Inter:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
     <!-- Custom Style Sheet -->
-    <link rel="stylesheet" th:href="@{/css/index.css(v='2.3')}">
+    <link rel="stylesheet" th:href="@{/css/index.css(v='2.4')}">
 </head>
 
 <body>
@@ -59,7 +59,7 @@
                     </div>
 
                     <div class="inline-row" style="margin-top:14px;">
-                        <label class="inline-label wide" for="input-move-variance">Var%</label>
+                        <label class="inline-label wide" for="input-move-variance">Curr%</label>
                         <input type="number" id="input-move-variance" class="inline-input grow" min="0" step="0.1"
                             value="3.0">
                     </div>
@@ -191,7 +191,11 @@
                                         class="sort-icon"></span></th>
                                 <th class="sortable" onclick="handleSort('currentPercentMove')">Move% <span
                                         class="sort-icon"></span></th>
-                                <th class="sortable" onclick="handleSort('targetMin')">Price(Low-High) <span
+                                <th class="sortable" onclick="handleSort('indicator')">Indicator <span
+                                        class="sort-icon"></span></th>
+                                <th class="sortable" onclick="handleSort('indicatorDays')">Ind. Days <span
+                                        class="sort-icon"></span></th>
+                                <th class="sortable" onclick="handleSort('targetMin')">Price Range <span
                                         class="sort-icon"></span></th>
                                 <th class="sortable" onclick="handleSort('typicalHighTime')">High Time <span
                                         class="sort-icon"></span></th>
@@ -206,7 +210,7 @@
                         </thead>
                         <tbody id="screener-table-body">
                             <tr class="empty-state">
-                                <td colspan="9">
+                                <td colspan="11">
                                     <div class="empty-state-content">
                                         <svg class="empty-icon" viewBox="0 0 24 24">
                                             <path
@@ -334,7 +338,7 @@
     </div>
 
     <!-- Script File -->
-    <script th:src="@{/js/index.js(v='2.3')}"></script>
+    <script th:src="@{/js/index.js(v='2.4')}"></script>
 </body>
 
 </html>

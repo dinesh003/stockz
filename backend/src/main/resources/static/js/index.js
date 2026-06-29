@@ -402,7 +402,7 @@ function renderTable() {
         const tr = document.createElement("tr");
         tr.className = "empty-state";
         tr.innerHTML = `
-            <td colspan="9">
+            <td colspan="11">
                 <div class="empty-state-content">
                     <svg class="empty-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
                     <p>No matching setups found.</p>
@@ -422,9 +422,14 @@ function renderTable() {
         const rsiColorClass = setup.rsiLabel === "BULLISH" ? "text-green"
             : (setup.rsiLabel === "BEARISH" ? "text-red" : "");
 
+        const isBuy = setup.indicator === "Buy";
         const expRange = setup.targetMin && setup.targetMax
-            ? `₹${setup.targetMin.toFixed(2)} - ₹${setup.targetMax.toFixed(2)}`
+            ? (isBuy 
+                ? `₹${setup.targetMin.toFixed(2)} - ₹${setup.targetMax.toFixed(2)}`
+                : `₹${setup.targetMax.toFixed(2)} - ₹${setup.targetMin.toFixed(2)}`)
             : '-';
+
+        const indicatorClass = setup.indicator === "Buy" ? "badge-buy" : "badge-sell";
 
         const symbolClean = setup.symbol.replace('.NS', '');
         const tvUrl = `https://in.tradingview.com/chart/?symbol=NSE%3A${symbolClean}`;
@@ -442,6 +447,8 @@ function renderTable() {
             </td>
             <td>₹${setup.currentPrice.toFixed(2)}</td>
             <td class="${moveClass}">${setup.currentPercentMove >= 0 ? '+' : ''}${setup.currentPercentMove.toFixed(2)}%</td>
+            <td><span class="badge ${indicatorClass}">${setup.indicator || '-'}</span></td>
+            <td><strong>${setup.indicatorDays != null ? setup.indicatorDays : '0'}</strong></td>
             <td>${expRange}</td>
             <td>${setup.typicalHighTime || '-'}</td>
             <td>${setup.typicalLowTime || '-'}</td>

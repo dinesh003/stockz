@@ -8,6 +8,8 @@ public class TradeSetupDto {
     private String symbol;
     private String sourceList;
     private String tradeSide;
+    private String indicator;
+    private int indicatorDays;
     private double currentPrice;
     private double currentPercentMove;
     private double dayOpen;

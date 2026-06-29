@@ -21,6 +21,8 @@ class TradeSetup:
         self.comparable_sample_count = 0
         self.avg_extension_percent = 0.0
         self.avg_close_percent = 0.0
+        self.indicator = ""
+        self.indicator_days = 0
         
         # Intraday patterns
         self.typical_high_time = "N/A"
@@ -57,6 +59,8 @@ class TradeSetup:
             "tradeSide": self.trade_side,
             "currentPrice": float(self.current_price),
             "currentPercentMove": float(self.current_percent_move),
+            "indicator": self.indicator,
+            "indicatorDays": int(self.indicator_days),
             "dayOpen": float(self.day_open),
             "dayHigh": float(self.day_high),
             "dayLow": float(self.day_low),
