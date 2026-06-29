@@ -63,13 +63,14 @@ def evaluate_setup(setup: TradeSetup, min_rr: float = 2.0, move_variance: float 
         notes.append("Current move is already at or near historical average extension limit")
         
     # 4. Final Classification Logic
+    watchlist_threshold = min(1.2, min_rr) if use_rr_filter else 0.0
     if (not use_rr_filter or rr >= min_rr) and (rsi_ok or bb_ok):
         setup.final_decision = "TRADE"
         if use_rr_filter:
             notes.append(f"Setup meets minimum risk-reward ratio of {min_rr} with technical confirmation")
         else:
             notes.append("Setup has technical confirmation (Risk-reward filter disabled)")
-    elif not use_rr_filter or rr >= 1.2:
+    elif not use_rr_filter or rr >= watchlist_threshold:
         setup.final_decision = "WATCHLIST"
         if use_rr_filter and rr < min_rr:
             notes.append(f"Risk reward ratio ({rr}) is below target threshold ({min_rr})")
@@ -77,8 +78,8 @@ def evaluate_setup(setup: TradeSetup, min_rr: float = 2.0, move_variance: float 
             notes.append("Technical indicators are neutral or do not confirm momentum")
     else:
         setup.final_decision = "REJECT"
-        if rr < 1.2:
-            notes.append(f"Risk reward ratio ({rr}) is too low (below 1.2)")
+        if use_rr_filter and rr < watchlist_threshold:
+            notes.append(f"Risk reward ratio ({rr}) is too low (below {watchlist_threshold})")
         else:
             notes.append("Fails core technical indicator and momentum confirmations")
             
